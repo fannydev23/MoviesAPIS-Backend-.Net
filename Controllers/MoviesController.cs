@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using MoviesAPIS.Data;
 using MoviesAPIS.Models.DTO_s;
 using MoviesAPIS.Repositories;
+using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 // For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 
@@ -38,16 +39,67 @@ namespace MoviesAPIS.Controllers
         }
 
         [HttpGet("ByGenre/{idGenre}")]
-        public async Task<ActionResult<IEnumerable<Movie>>> GetMoviesByGenre(int idGenre)
+        public async Task<ActionResult<IEnumerable<MoviesDTO>>> GetMoviesByGenre(int idGenre)
         {
             var movies = await Context.Movies
                 .Where(m => m.Genders.Any(g => g.idGender==idGenre))
-                .Include(m => m.Genders)
+                .Select(x=> new MoviesDTO
+                {
+                    idMovie=x.idMovie,
+                    title = x.title,
+                    imageUrl = x.imageUrl,
+                    
+                }).ToListAsync();
+
+            if (movies == null || !movies.Any())
+            {
+                movies = [];
+            }
+
+            return Ok(movies);
+        }
+
+        [HttpGet("ByActor/{idActor}")]
+        public async Task<ActionResult<IEnumerable<MoviesDTO>>> GetMoviesByActor(int idActor)
+        {
+            var movies = await Context.Movies
+                .Where(m => m.Actors.Any(a => a.idActor == idActor))
+                .Select(x => new MoviesDTO
+                {
+                    idMovie = x.idMovie,
+                    title = x.title,
+                    imageUrl = x.imageUrl,
+
+                })
                 .ToListAsync();
 
             if (movies == null || !movies.Any())
             {
-                return NotFound($"No movies found for genre: {idGenre}");
+                movies = [];
+
+            }
+
+            return Ok(movies);
+        }
+
+        [HttpGet("SearchByTitle/{title}")]
+        public async Task<ActionResult<IEnumerable<MoviesDTO>>> GetMoviesSearchByTitle(string title)
+        {
+            var movies = await Context.Movies
+                .Where(m => m.title.Contains(title))
+                .Select(x => new MoviesDTO
+                {
+                    idMovie = x.idMovie,
+                    title = x.title,
+                    imageUrl = x.imageUrl,
+
+                })
+                .ToListAsync();
+
+            if (movies == null || !movies.Any())
+            {
+                movies = [];
+
             }
 
             return Ok(movies);
@@ -65,11 +117,17 @@ namespace MoviesAPIS.Controllers
 
             var movies = await Context.Movies
                 .Where(m =>
-                    m.title.Contains(query, StringComparison.OrdinalIgnoreCase) ||
-                    m.Genders.Any(g => g.gender.Contains(query, StringComparison.OrdinalIgnoreCase)) ||
-                    m.Actors.Any(a =>
-                        (a.name + " " + a.lastName).Contains(query, StringComparison.OrdinalIgnoreCase)))
-                .ToListAsync();
+                    m.title.Contains(query) ||
+                    m.Genders.Any(g => g.gender.Contains(query) ||
+                    m.Actors.Any(a =>a.name.Contains(query) || a.lastName.Contains(query)))
+                ).Select(x => new MoviesDTO
+                {
+                    idMovie = x.idMovie,
+                    title = x.title,
+                    imageUrl = x.imageUrl,
+
+                })
+                 .ToListAsync();
 
 
             //var movies = Context.Movies
@@ -86,7 +144,7 @@ namespace MoviesAPIS.Controllers
 
             if (movies == null || !movies.Any())
             {
-                return NotFound($"No movies found matching the search query: {query}.");
+                movies = [];
             }
 
             return Ok(movies);
