@@ -62,7 +62,7 @@ namespace MoviesAPIS.Controllers
         [HttpGet("ByActor/{idActor}")]
         public async Task<ActionResult<IEnumerable<MoviesDTO>>> GetMoviesByActor(int idActor)
         {
-            var movies = await Context.Movies
+            var movies = await movieRepository.Get()
                 .Where(m => m.Actors.Any(a => a.idActor == idActor))
                 .Select(x => new MoviesDTO
                 {
@@ -85,7 +85,7 @@ namespace MoviesAPIS.Controllers
         [HttpGet("SearchByTitle/{title}")]
         public async Task<ActionResult<IEnumerable<MoviesDTO>>> GetMoviesSearchByTitle(string title)
         {
-            var movies = await Context.Movies
+            var movies = await movieRepository.Get()
                 .Where(m => m.title.Contains(title))
                 .Select(x => new MoviesDTO
                 {
@@ -115,7 +115,7 @@ namespace MoviesAPIS.Controllers
                 return BadRequest("Search query must be provided.");
             }
 
-            var movies = await Context.Movies
+            var movies = await movieRepository.Get()
                 .Where(m =>
                     m.title.Contains(query) ||
                     m.Genders.Any(g => g.gender.Contains(query) ||
@@ -127,20 +127,7 @@ namespace MoviesAPIS.Controllers
                     imageUrl = x.imageUrl,
 
                 })
-                 .ToListAsync();
-
-
-            //var movies = Context.Movies
-            //    .Include(m => m.Genders)
-            //    .Include(m => m.Actors)
-            //    .Include(m => m.Actors)
-            //    .AsEnumerable().ToList();  // Cambiar a memoria para evaluación cliente
-            //.Where(m =>
-            //    m.title.Contains(query, StringComparison.OrdinalIgnoreCase) ||
-            //    m.Genders.Any(g => g.gender.Contains(query, StringComparison.OrdinalIgnoreCase)) ||
-            //    m.Actors.Any(a =>
-            //        (a.name + " " + a.lastName).Contains(query, StringComparison.OrdinalIgnoreCase)))
-            //.ToList();
+                .ToListAsync();
 
             if (movies == null || !movies.Any())
             {
